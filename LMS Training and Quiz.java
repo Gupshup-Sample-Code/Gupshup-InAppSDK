@@ -14,6 +14,7 @@ import com.teamchat.client.sdk.impl.TeamchatAPIImpl;
 public class LMSBot 
 {
 	// Get your API from gupshup.io
+	int questionNo; 
 	public static final String authKey = "YOUR API KEY";
 	
 	//  list the email address of the members to want in the room.
@@ -44,12 +45,13 @@ public class LMSBot
 		String user = api.context().currentSender().getEmail();
 		String userName = api.context().currentSender().getName();
 		System.out.println(user);
-		String id = createp2pRoom(user,userName);
 		
 		//  Create a P2P Room
+		String id = createp2pRoom(user,userName);
+		
 		Room p2pRoom = api.context().byId(id);
 		p2pRoom.post(new PollChatlet()
-				.setQuestionHtml("<img src=\"http://gs.tc.im/kZtXdIFd9MQ\">")
+				.setQuestionHtml("<img src=\"http://gs.tc.im/kZtXdIFd9MQ\">")//replace with your source url or plain text.
 				.alias("welcomePoll"));
 		api.perform(p2pRoom);
 	}
@@ -57,9 +59,10 @@ public class LMSBot
 	{
 		TeamchatAPI api = TeamchatAPIImpl.fromFile("config.json")
 				.setAuthenticationKey(authKey);
+		
+		// Create p2p room
 		Room room = api.context().p2p(user).post(new TextChatlet("Welcome "+userName));
 		api.perform(room);
-		System.out.println(room.getId());
 		String id = room.getId();
 		return id;
 	}
@@ -67,10 +70,9 @@ public class LMSBot
 	@OnAlias("welcomePoll")
 	public void onreplytopoll(TeamchatAPI api)
 	{
+		// capture the 
 		String pollReply = api.context().currentReply().getField("resp");
-		System.out.println(pollReply);
 		String user = api.context().currentReply().senderEmail();
-		System.out.println(user);
 		if(pollReply.equalsIgnoreCase("Yes"))
 		{
 			api.performPostInCurrentRoom(new PollChatlet().setQuestionHtml("<html><center><img src=\"http://c.asstatic.com/images/1963067_635174270222126250-1.jpg\" >"
@@ -88,18 +90,38 @@ public class LMSBot
 	@OnAlias("Questionnaire")
 	public void quizQuestions(TeamchatAPI api)
 	{
-		api.perform(api
-				.context()
-				.currentRoom()
-				.post(new PrimaryChatlet()
-						.setReplyLabel("Submit")
-						.setQuestionHtml("http://gs.tc.im/RfVfYRYw")
-						.setReplyScreen(
-								api.objects()
-										.form().addField(api.objects()
-														.input()
-														.name("userAnswer").label("Enter Option Number").enableLastReplyUpdate()))
-						.alias("reply")));
+		// Your question can be fetch --- coding for same is required -----
+		//QuestionSet can be fetch from your database or any backend resource.
+		if(questionNo <= QuestionSet.length)
+		{
+			questionNo++;
+			api.perform(api
+					.context()
+					.currentRoom()
+					.post(new PrimaryChatlet()
+							.setReplyLabel("Submit")
+							.setQuestionHtml("http://gs.tc.im/RfVfYRYw") // question can be variable and iterate. 
+							.setReplyScreen(
+									api.objects()
+											.form().addField(api.objects()
+															.input()
+															.name("userAnswer").label("Enter Option Number").enableLastReplyUpdate()))
+							.alias("reply")));
+		}else
+		{
+				api.perform(api
+					.context()
+					.currentRoom()
+					.post(new PrimaryChatlet()
+							.setReplyLabel("Submit")
+							.setQuestionHtml("http://gs.tc.im/RfVfYRYw")
+							.setReplyScreen(
+									api.objects()
+											.form().addField(api.objects()
+															.input()
+															.name("userAnswer").label("Enter Option Number").enableLastReplyUpdate()))
+							.alias("QuestionnaireEnd")));
+		}
 	}
 	
 	@OnAlias("reply")
@@ -117,7 +139,18 @@ public class LMSBot
 							.alias("Questionnaire")));
 		}else
 		{
-			
+			api.perform(api
+					.context()
+					.currentRoom()
+					.post(new PrimaryChatlet()
+							.setQuestionHtml("<html><b>Your Answer is Incorrect</b></html>")
+							.alias("Questionnaire")));
 		}
+	}
+	
+	@OnAlias("QuestionnaireEnd")
+	public void QuestionnaireEnd(TeamchatAPI api)
+	{
+		api.performPostInCurrentRoom(new TextChatlet("You have successfully completed the Quiz"));	
 	}
 }
