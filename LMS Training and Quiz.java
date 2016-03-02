@@ -13,22 +13,31 @@ import com.teamchat.client.sdk.impl.TeamchatAPIImpl;
 
 public class LMSBot 
 {
-
+	// Get your API from gupshup.io
 	public static final String authKey = "YOUR API KEY";
+	
+	//  list the email address of the members to want in the room.
 	public static final String roomMember1 = "member1@domain.com";
 	public static final String roomMember2 = "member2@domain.com";
+	
 	public static void main(String[] args) throws Exception 
 	{
+		// Create a TeamchatApi Instance
 		TeamchatAPI api = TeamchatAPIImpl.fromFile("config.json")
 				.setAuthenticationKey(authKey);
+				
+		// Create a group/Room.
 		Room r = api.context().create().setName("LMS Training and Quiz")
 				.add(roomMember1)
 				.add(roomMember2);
 
 		api.perform(r.post(new TextChatlet("Hello! To take a quiz post the keyword 'Quiz' in the room")));
+		
+		// Setups bot to listen to the events from teamchat server.
 		api.startReceivingEvents(new LMSBot());
 	}
 	
+	// Register for a keyword “Quiz” using @OnKeyword() annotaion.
 	@OnKeyword("Quiz")
 	public void onTest(TeamchatAPI api) 
 	{
@@ -36,6 +45,8 @@ public class LMSBot
 		String userName = api.context().currentSender().getName();
 		System.out.println(user);
 		String id = createp2pRoom(user,userName);
+		
+		//  Create a P2P Room
 		Room p2pRoom = api.context().byId(id);
 		p2pRoom.post(new PollChatlet()
 				.setQuestionHtml("<img src=\"http://gs.tc.im/kZtXdIFd9MQ\">")
